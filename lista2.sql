@@ -17,9 +17,8 @@ where k1.funkcja = 'MILUSIA' or k1.funkcja = 'KOT';
 
 --zad19b
 
-<<<<<<< HEAD
 --zad19c
-=======
+
 --zad19c
 
 --zad20
@@ -43,4 +42,3 @@ select nr_bandy, count(*)
         join (select distinct m.pseudo from wrogowie_kocurow m) n
         on k.pseudo = n.pseudo)
     group by nr_bandy;
->>>>>>> b00f949d98674ae35faf418f10546e0f2027dada
