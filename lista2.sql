@@ -17,4 +17,30 @@ where k1.funkcja = 'MILUSIA' or k1.funkcja = 'KOT';
 
 --zad19b
 
+<<<<<<< HEAD
 --zad19c
+=======
+--zad19c
+
+--zad20
+SELECT k.imie "Imie kotki", b.nazwa "Nazwa bandy", 
+    wk.imie_wroga "Imie wroga", w.stopien_wrogosci "Ocena wroga", 
+    wk.data_incydentu "Data incydentu"
+FROM ((kocury k join bandy b on k.nr_bandy = b.nr_bandy) 
+    join wrogowie_kocurow wk on k.pseudo = wk.pseudo) 
+    join wrogowie w on w.imie_wroga = wk.imie_wroga
+WHERE k.plec = 'D' AND wk.data_incydentu > '2007-01-01';
+
+--zad21
+select b.nazwa "Nazwa bandy", count(*) "Koty z wrogami"
+from (select nr_bandy, count(*) 
+    from kocury k join wrogowie_kocurow wk on k.pseudo = wk.pseudo
+    group by nr_bandy) g1
+    join bandy b on g1.nr_bandy = b.nr_bandy;
+    
+select nr_bandy, count(*) 
+    from (kocury k 
+        join (select distinct m.pseudo from wrogowie_kocurow m) n
+        on k.pseudo = n.pseudo)
+    group by nr_bandy;
+>>>>>>> b00f949d98674ae35faf418f10546e0f2027dada
