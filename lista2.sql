@@ -42,3 +42,12 @@ select nr_bandy, count(*)
         join (select distinct m.pseudo from wrogowie_kocurow m) n
         on k.pseudo = n.pseudo)
     group by nr_bandy;
+    
+SELECT
+  Bandy.nazwa "Nazwa bandy",
+  COUNT (DISTINCT Kocury.pseudo)  "Koty z wrogami"
+FROM
+  Bandy
+RIGHT JOIN Kocury ON Bandy.nr_bandy=Kocury.nr_bandy
+JOIN Wrogowie_Kocurow ON Kocury.pseudo=Wrogowie_Kocurow.pseudo
+GROUP BY Bandy.nazwa;
