@@ -43,11 +43,83 @@ select nr_bandy, count(*)
         on k.pseudo = n.pseudo)
     group by nr_bandy;
     
-SELECT
-  Bandy.nazwa "Nazwa bandy",
-  COUNT (DISTINCT Kocury.pseudo)  "Koty z wrogami"
-FROM
-  Bandy
-RIGHT JOIN Kocury ON Bandy.nr_bandy=Kocury.nr_bandy
-JOIN Wrogowie_Kocurow ON Kocury.pseudo=Wrogowie_Kocurow.pseudo
-GROUP BY Bandy.nazwa;
+SELECT b.nazwa "Nazwa bandy", COUNT (DISTINCT k.pseudo) "Koty z wrogami"
+FROM Bandy b RIGHT JOIN Kocury k ON b.nr_bandy= k.nr_bandy JOIN Wrogowie_Kocurow wk ON k.pseudo = wk.pseudo
+GROUP BY b.nazwa;
+
+--zad22
+select k.funkcja "Funkcja", k.pseudo "Pseudonim kota", count(k.pseudo) "Liczba wrogow"
+from Kocury k join Wrogowie_Kocurow wk on k.pseudo = wk.pseudo
+group by k.pseudo, k.funkcja
+having count(k.pseudo) > 1;
+
+--zad23
+select k.imie, 
+12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+'powyzej 864' "DAWKA"
+from Kocury k
+where myszy_extra is not null 
+and 12*(k.przydzial_myszy + myszy_extra) > 864
+union
+select k.imie, 
+12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+'ponizej 864' "DAWKA"
+from Kocury k
+where myszy_extra is not null 
+and 12*(k.przydzial_myszy + myszy_extra) < 864
+union
+select k.imie, 
+12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+'        864' "DAWKA"
+from Kocury k
+where myszy_extra is not null 
+and 12*(k.przydzial_myszy + myszy_extra) = 864
+order by "DAWKA ROCZNA" desc;
+
+--zad24
+--bez operatorow zbiorowych
+select distinct b.nr_bandy, b.nazwa, b.teren
+from Bandy b left join Kocury k on b.nr_bandy = k.nr_bandy
+where k.nr_bandy is null;
+
+--z operatorami zbiorowymi
+select distinct b.nr_bandy, b.nazwa, b.teren
+from Bandy b left join Kocury k on b.nr_bandy = k.nr_bandy
+minus
+select distinct b.nr_bandy, b.nazwa, b.teren
+from Bandy b join Kocury k on b.nr_bandy = k.nr_bandy;
+
+--zad25
+select k.imie, k.funkcja, k.przydzial_myszy
+from Kocury k
+where k.przydzial_myszy >= 3 * 
+    (select przydzial_myszy 
+    from (select nr_bandy, funkcja, przydzial_myszy 
+            from Kocury order by przydzial_myszy desc) koc 
+        join bandy b on koc.nr_bandy = b.nr_bandy 
+    where koc.funkcja = 'MILUSIA' 
+        and (b.teren = 'SAD' or b.teren = 'CALOSC') 
+        and rownum = 1);
+        
+--zad26
+select f.funkcja "Funkcja", 
+    round(avg(nvl(k.myszy_extra,0)+k.przydzial_myszy)) 
+    "Srednio najw. i najm. myszy"
+from Funkcje f join Kocury k on f.funkcja = k.funkcja
+group by f.funkcja
+having f.funkcja <> 'SZEFUNIO'
+    and (round(avg(nvl(k.myszy_extra,0)+k.przydzial_myszy)) =
+        max(round(avg(nvl(k.myszy_extra,0)+k.przydzial_myszy)))
+        or
+        round(avg(nvl(k.myszy_extra,0)+k.przydzial_myszy)) =
+        min(round(avg(nvl(k.myszy_extra,0)+k.przydzial_myszy))));
+
+
+
+
+
+
+
+
+
+
