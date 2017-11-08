@@ -55,8 +55,6 @@ group by b.nazwa;
 --        on k.pseudo = n.pseudo)
 --    group by k.nr_bandy;
 
-
-
 --zad22
 select k.funkcja "Funkcja", k.pseudo "Pseudonim kota", count(k.pseudo) "Liczba wrogow"
 from Kocury k join Wrogowie_Kocurow wk on k.pseudo = wk.pseudo
@@ -156,10 +154,10 @@ where nvl(myszy_extra,0)+nvl(przydzial_myszy,0) in
 order by ZJADA desc, pseudo desc;
 
 --zad27c
-select k1.pseudo, nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0) ZJADA 
-from Kocury k1 join Kocury k2 on nvl(k1.przydzial_myszy, 0) + NVL(k1.myszy_extra, 0) <= NVL(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)
-group by k1.pseudo, nvl(k1.przydzial_myszy, 0) + NVL(k1.myszy_extra, 0)
-having count(distinct nvl(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)) < &n+1
+select k1.pseudo, min(nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0)) ZJADA 
+from Kocury k1 left join Kocury k2 on nvl(k1.przydzial_myszy, 0) + NVL(k1.myszy_extra, 0) < NVL(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)
+group by k1.pseudo
+having count(distinct nvl(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)) < &n
 order by ZJADA desc, pseudo desc;
 
 --zad27d
@@ -222,11 +220,11 @@ order by 2;
 
 --zad29
 --zad29a
-select k1.imie, nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0) "ZJADA", k1.nr_bandy "NR BANDY", to_char(avg(nvl(k2.myszy_extra,0)+nvl(k2.przydzial_myszy,0)), '99.99') "SREDNIA BANDY"
+select k1.imie, min(nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0)) "ZJADA", min(k1.nr_bandy) "NR BANDY", to_char(avg(nvl(k2.myszy_extra,0)+nvl(k2.przydzial_myszy,0)), '99.99') "SREDNIA BANDY"
 from Kocury k1 join Kocury k2 on k1.nr_bandy = k2.nr_bandy
 where k1.plec = 'M'
-group by k1.imie, nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0), k1.nr_bandy
-having nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0) < avg(nvl(k2.myszy_extra,0)+nvl(k2.przydzial_myszy,0))
+group by k1.imie
+having min(nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0)) < avg(nvl(k2.myszy_extra,0)+nvl(k2.przydzial_myszy,0))
 order by avg(nvl(k2.myszy_extra,0)+nvl(k2.przydzial_myszy,0));
 
 --zad29b
