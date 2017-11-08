@@ -28,50 +28,34 @@ from
 pivot(min(imie) for poziom in (2 szef1, 3 szef2, 4 szef3));
 
 --zad19c
-SELECT
-  CONNECT_BY_ROOT IMIE                                             "Imie",
-  ' | '                                                            "   ",
-  CONNECT_BY_ROOT FUNKCJA                                          "Funkcja",
-  SUBSTR(SYS_CONNECT_BY_PATH(RPAD(IMIE, 12), '| ') || '|', 14, 38) "Imiona kolejnych szefów"
-FROM KOCURY
-WHERE CONNECT_BY_ISLEAF = 1
-CONNECT BY PRIOR SZEF = PSEUDO
-START WITH FUNKCJA IN ('MILUSIA', 'KOT');
-
-SELECT      imie,
-            ' | ' AS " ",
-            funkcja,
-            RTRIM(REVERSE(RTRIM(SYS_CONNECT_BY_PATH(REVERSE(imie), ' | '), imie)), '| ') AS "Imiona kolejnych szefow"
-FROM        Kocury
-WHERE       funkcja IN ('KOT', 'MILUSIA')
-CONNECT BY  PRIOR pseudo = szef
-START WITH  szef IS NULL;
+select connect_by_root imie "Imie", ' | ' "   ", connect_by_root funkcja "Funkcja", 
+    substr(sys_connect_by_path(rpad(imie, 15), '| ') || '|', 17, 51) "Imiona kolejnych szefów"
+from Kocury
+where connect_by_isleaf = 1
+connect by prior szef = pseudo
+start with funkcja in ('MILUSIA', 'KOT');
 
 --zad20
-SELECT k.imie "Imie kotki", b.nazwa "Nazwa bandy", 
+select k.imie "Imie kotki", b.nazwa "Nazwa bandy", 
     wk.imie_wroga "Imie wroga", w.stopien_wrogosci "Ocena wroga", 
     wk.data_incydentu "Data incydentu"
-FROM ((kocury k join bandy b on k.nr_bandy = b.nr_bandy) 
+from ((kocury k join bandy b on k.nr_bandy = b.nr_bandy) 
     join wrogowie_kocurow wk on k.pseudo = wk.pseudo) 
     join wrogowie w on w.imie_wroga = wk.imie_wroga
-WHERE k.plec = 'D' AND wk.data_incydentu > '2007-01-01';
+where k.plec = 'D' AND wk.data_incydentu > '2007-01-01';
 
 --zad21
-select b.nazwa "Nazwa bandy", count(*) "Koty z wrogami"
-from (select nr_bandy, count(*) 
-    from kocury k join wrogowie_kocurow wk on k.pseudo = wk.pseudo
-    group by nr_bandy) g1
-    join bandy b on g1.nr_bandy = b.nr_bandy;
-    
-select nr_bandy, count(*) 
-    from (kocury k 
-        join (select distinct m.pseudo from wrogowie_kocurow m) n
-        on k.pseudo = n.pseudo)
-    group by nr_bandy;
-    
-SELECT b.nazwa "Nazwa bandy", COUNT (DISTINCT k.pseudo) "Koty z wrogami"
-FROM Bandy b RIGHT JOIN Kocury k ON b.nr_bandy = k.nr_bandy JOIN Wrogowie_Kocurow wk ON k.pseudo = wk.pseudo
-GROUP BY b.nazwa;
+select b.nazwa "Nazwa bandy", count(distinct k.pseudo) "Koty z wrogami"
+from Bandy b right join Kocury k on b.nr_bandy = k.nr_bandy join Wrogowie_Kocurow wk on k.pseudo = wk.pseudo
+group by b.nazwa;
+
+--select nr_bandy, count(*) 
+--    from (Kocury k 
+--        join (select distinct m.pseudo from wrogowie_kocurow m) n
+--        on k.pseudo = n.pseudo)
+--    group by k.nr_bandy;
+
+
 
 --zad22
 select k.funkcja "Funkcja", k.pseudo "Pseudonim kota", count(k.pseudo) "Liczba wrogow"
@@ -81,25 +65,25 @@ having count(k.pseudo) > 1;
 
 --zad23
 select k.imie, 
-12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0))"DAWKA ROCZNA",
 'powyzej 864' "DAWKA"
 from Kocury k
 where myszy_extra is not null 
-and 12*(k.przydzial_myszy + myszy_extra) > 864
+and 12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0)) > 864
 union
 select k.imie, 
-12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0))"DAWKA ROCZNA",
 'ponizej 864' "DAWKA"
 from Kocury k
 where myszy_extra is not null 
-and 12*(k.przydzial_myszy + myszy_extra) < 864
+and 12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0)) < 864
 union
 select k.imie, 
-12*(k.przydzial_myszy + myszy_extra)"DAWKA ROCZNA",
+12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0))"DAWKA ROCZNA",
 '        864' "DAWKA"
 from Kocury k
 where myszy_extra is not null 
-and 12*(k.przydzial_myszy + myszy_extra) = 864
+and 12*(nvl(k.przydzial_myszy,0) + nvl(myszy_extra,0)) = 864
 order by "DAWKA ROCZNA" desc;
 
 --zad24
@@ -149,7 +133,7 @@ having
 select pseudo, nvl(przydzial_myszy, 0) + nvl(myszy_extra, 0) ZJADA
 from Kocury k
 where (
-        select count(nvl(przydzial_myszy, 0) + nvl(myszy_extra, 0))
+        select count(distinct nvl(przydzial_myszy, 0) + nvl(myszy_extra, 0))
         from Kocury
         where nvl(przydzial_myszy, 0) + NVL(myszy_extra, 0) > NVL(k.przydzial_myszy, 0) + NVL(k.myszy_extra, 0)
       ) < &n
@@ -169,13 +153,14 @@ where nvl(myszy_extra,0)+nvl(przydzial_myszy,0) in
         )
         where rownum < &n + 1
     )
-;
+order by ZJADA desc, pseudo desc;
 
 --zad27c
 select k1.pseudo, nvl(k1.myszy_extra,0)+nvl(k1.przydzial_myszy,0) ZJADA 
 from Kocury k1 join Kocury k2 on nvl(k1.przydzial_myszy, 0) + NVL(k1.myszy_extra, 0) <= NVL(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)
 group by k1.pseudo, nvl(k1.przydzial_myszy, 0) + NVL(k1.myszy_extra, 0)
-having count(distinct nvl(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)) < &n+1;
+having count(distinct nvl(k2.przydzial_myszy, 0) + NVL(k2.myszy_extra, 0)) < &n+1
+order by ZJADA desc, pseudo desc;
 
 --zad27d
 select * 
@@ -185,7 +170,8 @@ from
             dense_rank() over(order by nvl(myszy_extra,0)+nvl(przydzial_myszy,0) desc) rnk
         from Kocury
     )
-where rnk < &n + 1;
+where rnk < &n + 1
+order by ZJADA desc, pseudo desc;
 
 --zad28
 select to_char(extract(year from w_stadku_od)) "ROK", count(pseudo) "LICZBA WYSTAPIEN"
@@ -288,7 +274,7 @@ where k.w_stadku_od !=
         from Kocury
         where k.nr_bandy = nr_bandy
     )
-union all
+union
 select k.imie, k.w_stadku_od "WSTAPIL DO STADKA", '<--- NAJMLODSZY STAZEM W BANDZIE ' ||  b.nazwa " "
 from Kocury k join bandy b on k.nr_bandy = b.nr_bandy
 where k.w_stadku_od = 
@@ -297,7 +283,7 @@ where k.w_stadku_od =
         from Kocury k1 
         where k1.nr_bandy = k.nr_bandy
     )
-union all
+union
 select k.imie, k.w_stadku_od "WSTAPIL DO STADKA", '<--- NAJSTARSZY STAZEM W BANDZIE ' ||  b.nazwa " "
 from Kocury k join bandy b on k.nr_bandy = b.nr_bandy
 where k.w_stadku_od = 
@@ -309,7 +295,7 @@ where k.w_stadku_od =
 order by imie;
 
 --zad31
-create or replace view zad31(NAZWA, SRE_SPOZ, MAX_SPOZ, MIN_SPOZ, KOTY, KOT_Z_DOD)
+create or replace view zad31(NAZWA, SRE_SPOZ, MAX_SPOZ, MIN_SPOZ, KOTY, KOTY_Z_DOD)
 as
 select nazwa, avg(nvl(przydzial_myszy, 0)), max(nvl(przydzial_myszy, 0)), min(nvl(przydzial_myszy, 0)), count(pseudo), count(myszy_extra)
 from Kocury k join Bandy b on k.nr_bandy = b.nr_bandy
@@ -332,11 +318,15 @@ where w_stadku_od in
         select w_stadku_od 
         from
         (
-            select w_stadku_od
-            from Kocury natural join Bandy
-            where nazwa = 'CZARNI RYCERZE'
-            order by w_stadku_od
-            fetch next 3 rows only
+            select *
+            from
+            (
+                select w_stadku_od
+                from Kocury natural join Bandy
+                where nazwa = 'CZARNI RYCERZE'
+                order by w_stadku_od
+            )
+            where rownum < 4
         )
     )
 or w_stadku_od in
@@ -344,11 +334,15 @@ or w_stadku_od in
         select w_stadku_od 
         from
         (
-            select w_stadku_od
-            from Kocury natural join Bandy
-            where nazwa = 'LACIACI MYSLIWI'
-            order by w_stadku_od
-            fetch next 3 rows only
+            select *
+            from
+            (
+                select w_stadku_od
+                from Kocury natural join Bandy
+                where nazwa = 'LACIACI MYSLIWI'
+                order by w_stadku_od
+            )
+            where rownum < 4
         )
     );
     
@@ -371,7 +365,7 @@ rollback;
 
 --zad33
 --zad33a
-select decode("PLEC", 'Kotka', ' ', NAZWA) "NAZWA BANDY", "PLEC", "ILE", "SZEFUNIO", "BANDZIOR", "LOWCZY", "LAPACZ", "KOT", "MILUSIA", "DZIELCZY", "SUMA"
+select decode("PLEC", 'Kocur', ' ', NAZWA) "NAZWA BANDY", "PLEC", "ILE", "SZEFUNIO", "BANDZIOR", "LOWCZY", "LAPACZ", "KOT", "MILUSIA", "DZIELCZY", "SUMA"
 from 
     (
         select nazwa, decode(plec, 'M', 'Kocur', 'Kotka') "PLEC",
@@ -408,7 +402,7 @@ from
 order by nazwa, plec desc;
 
 --zad33b
-select decode("PLEC", 'Kotka', ' ', NAZWA) "NAZWA BANDY", "PLEC", "ILE", "SZEFUNIO", "BANDZIOR", "LOWCZY", "LAPACZ", "KOT", "MILUSIA", "DZIELCZY", "SUMA"
+select decode("PLEC", 'Kocur', ' ', NAZWA) "NAZWA BANDY", "PLEC", "ILE", "SZEFUNIO", "BANDZIOR", "LOWCZY", "LAPACZ", "KOT", "MILUSIA", "DZIELCZY", "SUMA"
 from 
     (
         select nazwa, decode(plec, 'M', 'Kocur', 'Kotka') "PLEC",
@@ -423,12 +417,12 @@ from
             to_char(SUMA) SUMA
         from 
         (
-            select nazwa, plec, funkcja, nvl(przydzial_myszy, 0) + nvl(myszy_extra, 0) wszystkie_myszy
+            select nazwa, plec, funkcja, nvl(przydzial_myszy, 0) + nvl(myszy_extra, 0) myszy
             from Kocury natural join Bandy
         )
         pivot
         (
-            sum(wszystkie_myszy)
+            sum(myszy)
             for funkcja
             in ('SZEFUNIO' "SZEFUNIO", 'BANDZIOR' "BANDZIOR", 'LOWCZY' "LOWCZY", 'LAPACZ' "LAPACZ", 'KOT' "KOT", 'MILUSIA' "MILUSIA", 'DZIELCZY' "DZIELCZY")
         )
