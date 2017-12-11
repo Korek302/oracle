@@ -234,15 +234,103 @@ exception
         then dbms_output.put_line(komunikat || ': juz istnieje');
 end;
 
-declare
-    nr Bandy.nr_bandy%type := 9;
-    n Bandy.nazwa%type := 'asda';
-    t Bandy.teren%type := 'd';
 begin
-    dodaj_bande(nr, n, t);
+    dodaj_bande(9, 'asda', 'd');
 end;
 
 rollback;
 
 
 --zad41
+create or replace trigger nr_nowej_bandy
+before insert on Bandy
+for each row
+begin
+    select max(nr_bandy) + 1 into :new.nr_bandy from Bandy;
+end;
+
+begin
+    dodaj_bande(9, 'as', 'd');
+end;
+
+rollback;
+
+--zad42
+create or replace package pamiec as
+    przydzial number := 0;
+    kara number := 0;
+    nagroda number := 0;
+end pamiec;
+
+create or replace trigger przydzial
+before update on Kocury
+begin
+    select przydzial_myszy into pamiec.przydzial
+    from Kocury
+    where pseudo = 'TYGRYS';
+end;
+
+create or replace trigger utulenie_zalu
+before update on Kocury
+for each row
+declare
+    fmax number := 0;
+    fmin number := 0;
+    roznica number := 0;
+begin
+    select max_myszy, min_myszy into fmax, fmin from Funkcje where funkcja = :new.funkcja;
+    roznica := :new.przydzial_myszy - :old.przydzial_myszy;
+    if :new.funkcja = 'MILUSIA'
+        then 
+        if roznica < 0
+            then :new.przydzial_myszy := :old.przydzial_myszy;
+        end if;
+        if roznica < 0.1 * pamiec.przydzial
+            then pamiec.kara := pamiec.kara + 1;
+            :new.przydzial_myszy := :new.przydzial_myszy + 0.1 * pamiec.przydzial;
+            :new.myszy_extra := :new.myszy_extra + 5;
+        else
+            pamiec.nagroda := pamiec.nagroda + 1;
+        end if;
+    end if;
+    
+    if :new.przydzial_myszy > fmax
+        then :new.przydzial_myszy := fmax;
+    elsif :new.przydzial_myszy < fmin
+        then :new.przydzial_myszy := fmin;
+    end if;
+end;
+
+create or replace trigger rozliczenie
+after update on Kocury
+declare
+      tmp NUMBER DEFAULT 0;
+BEGIN
+    if pamiec.kara > 0 
+        then tmp := pamiec.kara;
+        pamiec.kara := 0; -- przeciwdziala petli nieskonczonej
+        update Kocury 
+        set przydzial_myszy = przydzial_myszy * ( 1 - (0.1 * tmp))
+        where pseudo = 'TYGRYS';
+	end if;
+	if pamiec.nagroda > 0 
+		then tmp := pamiec.nagroda;
+        pamiec.nagroda := 0; -- przeciwdziala petli nieskonczonej
+        update Kocury 
+        set myszy_extra = myszy_extra + (pamiec.nagroda * 5)
+		where pseudo = 'TYGRYS';
+	END IF;
+END;
+
+
+SELECT * FROM Kocury;
+
+UPDATE Kocury SET przydzial_myszy = przydzial_myszy + 1;
+
+SELECT * FROM Kocury;
+
+ROLLBACK;
+
+
+
+
