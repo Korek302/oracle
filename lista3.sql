@@ -38,8 +38,8 @@ END;
 --zad36
 DECLARE
     CURSOR kursor IS
-        SELECT przydzial_myszy, pseudo, funkcja
-        FROM Kocury
+        SELECT przydzial_myszy, pseudo, funkcja, max_myszy
+        FROM Kocury NATURAL JOIN Funkcje
         ORDER BY przydzial_myszy DESC
         FOR UPDATE OF przydzial_myszy;
     rekord kursor%ROWTYPE;
@@ -55,11 +55,10 @@ BEGIN
         OPEN kursor;
         LOOP
             FETCH kursor INTO rekord; EXIT WHEN kursor%NOTFOUND;
-            SELECT max_myszy INTO fmax FROM Funkcje WHERE funkcja = rekord.funkcja;
             SELECT przydzial_myszy INTO stary FROM Kocury WHERE pseudo = rekord.pseudo;
             nowy := NVL(rekord.przydzial_myszy, 0) * 1.1;
-            IF nowy > fmax THEN
-                nowy := fmax;
+            IF nowy > rekord.max_myszy THEN
+                nowy := rekord.max_myszy;
             END IF;
             UPDATE Kocury SET przydzial_myszy = nowy WHERE pseudo = rekord.pseudo;
             SELECT SUM(przydzial_myszy) INTO suma FROM Kocury;
@@ -78,6 +77,21 @@ END;
 SELECT imie, NVL(przydzial_myszy,0) "Myszki po podwyzce" FROM Kocury ORDER BY przydzial_myszy DESC;
 
 ROLLBACK;
+
+alter trigger zakaz_przekroczenia disable;
+alter trigger zakaz_przekroczenia enable;
+
+alter trigger kara_milus disable;
+alter trigger kara_milus enable;
+
+alter trigger przydzial disable;
+alter trigger przydzial enable;
+
+alter trigger utulenie_zalu disable;
+alter trigger utulenie_zalu enable;
+
+alter trigger rozliczenie disable;
+alter trigger rozliczenie enable;
 
 --zad37
 declare
