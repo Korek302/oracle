@@ -363,8 +363,6 @@ create or replace trigger zlozone_utulenie_zalu
         nagroda number := 0;
         --fmax number := 0;
         --fmin number := 0;
-        roznica number := 0;
-        tmp number := 0;
     before statement is
     begin
         select przydzial_myszy into przydzial
@@ -373,6 +371,7 @@ create or replace trigger zlozone_utulenie_zalu
     end before statement;
     
     before each row is 
+        roznica number := 0;
     begin
         --select max_myszy, min_myszy into fmax, fmin from Funkcje where funkcja = :new.funkcja;
         roznica := :new.przydzial_myszy - :old.przydzial_myszy;
@@ -398,6 +397,7 @@ create or replace trigger zlozone_utulenie_zalu
     end before each row;
     
     after statement is
+        tmp number := 0;
     begin
         if kara > 0 
             then tmp := kara;
