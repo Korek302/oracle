@@ -18,10 +18,17 @@ final;
 
 create or replace type Plebs under Kocury
 (
-)
+);
 
-create or replace type Konto_type as object
+create or replace type Konto as object
 (data_wprowadzenia date,
 data_usuniecia date,
 wlasciciel Elita
+);
+
+create or replace type wrogowie_kocurow as object
+(indeks,
+pseudo,
+date_incydentu,
+opis_incydentu
 )
