@@ -22,6 +22,14 @@ alter type KocuryT
 add attribute szef ref ElitaT
 cascade;
 
+alter type KocuryT
+add attribute funkcja varchar2(10)
+cascade;
+
+alter type KocuryT
+add attribute nr_bandy number
+cascade;
+
 create or replace type body KocuryT as
     map member function Porownaj return varchar2 is
     begin
@@ -611,29 +619,20 @@ begin
         
         srednieZapotrzebowanie := zapotrzebowanie / lbKotow;
         
+        select w_stadku_od into tempData from Kocury where pseudo = koty(j);
+        if tempData between srodaPoprzednia and sroda then
+            tempData2 := tempData + dbms_random.value(0, sroda - tempData);
+        else
+            tempData2 := srodaPoprzednia + dbms_random.value(0, sroda - srodaPoprzednia);
+        end if;
+            
         for i in 1..srednieZapotrzebowanie
         loop
-            for j in 1..lbKotow
-            loop
-                select w_stadku_od into tempData from Kocury where pseudo = koty(j);
-                tempData2 := tempData + dbms_random.value(0, sroda - tempData);
-                tempData3 := srodaPoprzednia + dbms_random.value(0, sroda - srodaPoprzednia);
-                if tempData between srodaPoprzednia and sroda then
-                    execute immediate 
-                    'insert into Myszy(lowca, zjadacz, waga_myszy, data_zlowienia, data_wydania) 
-                    values(' || ':kot' || ', null, ' || round(dbms_random.value(25,50), 1) || 
-                    ', ' || q'[']' || tempData2 || q'[']' || ', ' || q'[']' ||  sroda  || q'[']' || ')'
-                    using koty(j);
-                else
-                    execute immediate
-                    'insert into Myszy(lowca, zjadacz, waga_myszy, data_zlowienia, data_wydania) 
-                    values(' || ':kot' || ', null, ' || round(dbms_random.value(25,50), 1) || 
-                    ', ' || q'[']' || tempData3 || q'[']' || ', ' || q'[']' ||  sroda  || q'[']' || ')'
-                    using koty(j);
-                end if;
-            end loop;
-            --insert into Myszy(lowca, zjadacz, waga_myszy, data_zlowienia, data_wydania) 
-            --values ('TYGRYS', 'TYGRYS', dbms_random.value(25,50), sysdate + dbms_random.value(0, to_date('2016-09-04') - to_date('2015-12-12')), sysdate);
+            forall j in 1..lbKotow
+            execute immediate
+            'insert into Myszy(lowca, zjadacz, waga_myszy, data_zlowienia, data_wydania)
+            values(:kot, null, ' || round(dbms_random.value(25,50), 1) || ', ' || q'[']' ||  temp2  || q'[']' || ', '|| q'[']' ||  sroda  || q'[']' || ')'
+            using koty(j);
         end loop;
         
         for i in 1..lbKotow
