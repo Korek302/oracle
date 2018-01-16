@@ -227,10 +227,11 @@ end;
 
 create or replace trigger modyfikowanie_kocuraO_plebs
 after update on PlebsO
+for each row
 begin
     update KocuryO k
-    set k.pseudo = pseudo, k.imie = imie, k.plec = plec, k.w_stadku_od = w_stadku_od, k.przydzial_myszy = przydzial_myszy,
-    myszy_extra = myszy_extra, k.szef = szef, k.funkcja = funkcja, k.nr_bandy = nr_bandy;
+    set k.imie = :new.imie, k.plec = :new.plec, k.w_stadku_od = :new.w_stadku_od, k.przydzial_myszy = :new.przydzial_myszy,
+    myszy_extra = :new.myszy_extra, k.szef = :new.szef, k.funkcja = :new.funkcja, k.nr_bandy = :new.nr_bandy where pseudo = :new.pseudo;
 end;
 
 create or replace trigger modyfikowanie_kocuraO_elita
@@ -238,8 +239,8 @@ after update on ElitaO
 for each row
 begin
     update KocuryO k
-    set k.pseudo = pseudo, k.imie = imie, k.plec = plec, k.w_stadku_od = w_stadku_od, k.przydzial_myszy = przydzial_myszy,
-    myszy_extra = myszy_extra, k.szef = szef, k.funkcja = funkcja, k.nr_bandy = nr_bandy;
+    set k.imie = :new.imie, k.plec = :new.plec, k.w_stadku_od = :new.w_stadku_od, k.przydzial_myszy = :new.przydzial_myszy,
+    myszy_extra = :new.myszy_extra, k.szef = :new.szef, k.funkcja = :new.funkcja, k.nr_bandy = :new.nr_bandy where pseudo = :new.pseudo;
 end;
 
 update ElitaO
@@ -328,7 +329,7 @@ INSERT INTO PlebsO(imie,plec,pseudo,funkcja,szef,w_stadku_od,przydzial_myszy,mys
     SELECT 'RUDA','D','MALA','MILUSIA',REF(O),'2006-09-17',22,42,1 FROM ElitaO O where O.pseudo = 'TYGRYS';
 
 INSERT INTO PlebsO(imie,plec,pseudo,funkcja,szef,w_stadku_od,przydzial_myszy,myszy_extra,nr_bandy)
-    SELECT 'BELA','D','LASKA','MILUSIA',REF(O),'2008-02-01',24,28,1 FROM ElitaO O where O.pseudo = 'LYSY';
+    SELECT 'BELA','D','LASKA','MILUSIA',REF(O),'2008-02-01',24,28,2 FROM ElitaO O where O.pseudo = 'LYSY';
 
 INSERT INTO PlebsO(imie,plec,pseudo,funkcja,szef,w_stadku_od,przydzial_myszy,myszy_extra,nr_bandy)
     SELECT 'MELA','D','DAMA','LAPACZ',REF(O),'2008-11-01',51,NULL,4 FROM ElitaO O where O.pseudo = 'RAFA';
@@ -495,6 +496,30 @@ from KocuryO k1, KocuryO k2
 where k1.w_stadku_od < k2.w_stadku_od and k2.imie = 'JACEK'
 order by k1.w_stadku_od desc;
 
+--zad21
+select k.nr_bandy, count(distinct k.pseudo) "Koty z wrogami"
+from KocuryO k, Wrogowie_KocurowO wk
+where k.pseudo = deref(wk.kocur).pseudo
+group by k.nr_bandy
+order by k.nr_bandy;
+
+--zad26
+select k.funkcja "Funkcja", 
+    round(avg(k.przydzial())) 
+    "Srednio najw. i najm. myszy"
+from KocuryO k
+group by k.funkcja
+having 
+    avg(k.przydzial()) in
+        ((select max(avg(k1.przydzial()))
+            from KocuryO k1
+            where k1.funkcja != 'SZEFUNIO'
+            group by k1.funkcja)
+        , (select min(avg(k2.przydzial()))
+            from KocuryO k2
+            where k2.funkcja != 'SZEFUNIO'
+            group by k2.funkcja));
+
 --zad28
 select k.getRokPrzys() "ROK", count(k.pseudo) "LICZBA WYSTAPIEN"
 from KocuryO k
@@ -592,6 +617,92 @@ begin
 exception
     when brak_kotow then dbms_output.put_line('Brak kotow');
     when others then dbms_output.put_line(sqlerrm);
+end;
+
+--zad43
+declare
+    cursor curFunkcje is
+        select distinct k.funkcja
+        from KocuryO k;
+    cursor curBandy is
+        select distinct k.nr_bandy
+        from KocuryO k;
+    cursor curPlec is
+        select distinct k.plec
+        from KocuryO k;
+  plec Kocury.plec%type;
+  ile number;
+begin
+  dbms_output.put(rpad('NUMER BANDY', 20) || rpad('PLEC', 7) || rpad('ILE', 5));
+  for f in curFunkcje 
+  loop
+      dbms_output.put(rpad(f.funkcja, 10));
+  end loop;
+  dbms_output.put_line(rpad('SUMA', 10));
+  dbms_output.put(lpad(' ', 20, '-') || lpad(' ', 7, '-') || lpad(' ', 5, '-'));
+  for funkcja in curFunkcje 
+  loop
+      dbms_output.put(' ---------');
+  end loop;
+  dbms_output.put_line(' ---------');
+  
+  for b in curBandy
+  loop
+      dbms_output.put(rpad(b.nr_bandy, 20));
+      for pl in curPlec
+      loop
+        if pl.plec = 'M' then
+          dbms_output.put(rpad('Kocur',7));
+        else
+          dbms_output.put(rpad(' ',20));
+          dbms_output.put(rpad('Kotka',7));
+        end if;
+        
+        select count(*) into ile
+        from KocuryO k
+        where k.plec = pl.plec and k.nr_bandy = b.nr_bandy;
+        dbms_output.put(lpad(ile || ' ',5));
+        for f in curFunkcje
+        loop
+            select sum(decode(k.funkcja, f.funkcja, k.przydzial(), 0)) 
+            into ile
+            from KocuryO k
+            where k.plec = pl.plec and k.nr_bandy = b.nr_bandy;
+            dbms_output.put(lpad(ile || ' ',10));
+        end loop;
+            
+        select sum(k.przydzial()) into ile
+        from KocuryO k
+        where k.plec = pl.plec and k.nr_bandy = b.nr_bandy;
+        
+        dbms_output.put(lpad(ile || ' ',10));
+        dbms_output.put_line('');
+      end loop;
+  end loop;
+  dbms_output.put('Z' || lpad(' ', 19, '-') || lpad(' ', 7, '-') || lpad(' ', 5, '-'));
+  for f in curFunkcje
+  loop
+        dbms_output.put(lpad(' ', 10, '-'));
+  end loop;
+  
+  dbms_output.put_line(lpad(' ', 10, '-'));
+  dbms_output.put(rpad('ZJADA RAZEM', 20) || lpad(' ', 7) || lpad(' ', 5));
+  
+  for f in curFunkcje
+  loop
+    select sum(k.przydzial()) into ile
+    from KocuryO k 
+    where k.funkcja = f.funkcja;
+    
+    dbms_output.put(lpad(ile || ' ', 10));
+  end loop;
+  
+  select sum(k.przydzial()) 
+  into ile 
+  from KocuryO k;
+  
+  dbms_output.put(lpad(ile || ' ',10));
+  dbms_output.put_line('');
 end;
 
 
@@ -812,8 +923,6 @@ begin
         select nr_myszy bulk collect into tab_myszy 
         from Myszy where zjadacz is null;
         
-        dbms_output.put_line('Liczba myszy: ' || tab_myszy.count || ' i liczba kotow: ' || tab_pseudo.count);  
-        
         for i in 0..(tab_myszy.count-1)
         loop
             if i < suma_myszy
@@ -823,7 +932,6 @@ begin
                 while not przydzielono and lokalny_index < tab_pseudo.count
                 loop
                     index_kota := (mod(i + lokalny_index, tab_pseudo.count) + 1);
-                               
                     if tab_przydzial(index_kota) > 0 
                     then
                         update Myszy
@@ -836,11 +944,9 @@ begin
                     lokalny_index := lokalny_index + 1;
                 end loop;
             end if;            
-        end loop;
-                
-        dbms_output.put_line('Suma myszy: ' || suma_myszy || ' ~ ' || tab_myszy.count);          
+        end loop;         
     else
-        dbms_output.put_line('Brak mozliwosci wyplacenia myszy - dzis nie jest ostatnia sroda tego miesiaca.');
+        dbms_output.put_line('Blad - dzisiaj nie jest ostatnia sroda miesiaca.');
     end if;    
 end;
 
